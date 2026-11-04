@@ -1,0 +1,22 @@
+name: Verify live Statistics Lab migration
+on:
+  pull_request:
+    paths:
+      - .github/workflows/verify-live-migration.yml
+      - scripts/verify-live-migration.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare-published-sites:
+    name: Live GitHub Pages and Netlify comparison
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/verify-live-migration.mjs
