@@ -8,6 +8,7 @@ const sites=[
 const sha=text=>createHash('sha256').update(text).digest('hex');
 const source=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const report=[];
+const downloadedHTML={};
 for(const site of sites){
   try{
     const response=await fetch(site.url,{
@@ -16,6 +17,7 @@ for(const site of sites){
       signal:AbortSignal.timeout(25000)
     });
     const html=await response.text();
+    downloadedHTML[site.label]=html;
     const item={
       site:site.label,url:site.url,status:response.status,finalUrl:response.url,
       contentType:response.headers.get('content-type'),
@@ -44,4 +46,18 @@ if(netlify.status!==200){
   console.log('DEPLOYED_HTML_EQUAL='+equals);
   console.log('NETLIFY_IS_REPOSITORY_SOURCE='+netlify.matchesRepositorySource);
   console.log('HTML_BYTE_DIFFERENCE='+(netlify.length-gh.length));
+  const newHTML=downloadedHTML[sites[0].label];
+  const oldHTML=downloadedHTML[sites[1].label];
+  let prefix=0;
+  while(prefix<Math.min(newHTML.length,oldHTML.length)&&newHTML[prefix]===oldHTML[prefix])prefix++;
+  let newEnd=newHTML.length,oldEnd=oldHTML.length;
+  while(newEnd>prefix&&oldEnd>prefix&&newHTML[newEnd-1]===oldHTML[oldEnd-1]){newEnd--;oldEnd--;}
+  console.log('NETLIFY_DIFF='+JSON.stringify({
+    firstChangedCharacter:prefix,
+    githubChangedCharacters:newEnd-prefix,
+    netlifyChangedCharacters:oldEnd-prefix,
+    githubChangedExcerpt:newHTML.slice(prefix,newEnd).slice(0,500),
+    netlifyChangedExcerpt:oldHTML.slice(prefix,oldEnd).slice(0,1000),
+    singleNetlifyInsertion:newEnd===prefix
+  }));
 }
